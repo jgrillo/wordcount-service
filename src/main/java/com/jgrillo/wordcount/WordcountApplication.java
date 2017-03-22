@@ -1,5 +1,7 @@
 package com.jgrillo.wordcount;
 
+import com.jgrillo.wordcount.cli.CountCommand;
+import com.jgrillo.wordcount.resources.WordsResource;
 import io.dropwizard.Application;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
@@ -17,13 +19,15 @@ public class WordcountApplication extends Application<WordcountConfiguration> {
 
     @Override
     public void initialize(final Bootstrap<WordcountConfiguration> bootstrap) {
-        // TODO: application initialization
+        bootstrap.addCommand(new CountCommand());
     }
 
     @Override
     public void run(final WordcountConfiguration configuration,
                     final Environment environment) {
-        // TODO: implement application
+        final WordsResource resource = new WordsResource(
+                configuration.getCounterType(), configuration.getInitialCapacity()
+        );
+        environment.jersey().register(resource);
     }
-
 }

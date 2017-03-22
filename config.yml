@@ -1,4 +1,15 @@
+counter_type: stream
+initial_capacity: 1000
 logging:
   level: INFO
   loggers:
-    jgrillo: DEBUG
+    jgrillo: INFO
+metrics:
+  frequency: 1 minute
+  reporters:
+    - type: console
+server:
+  requestLog:
+    appenders:
+      - type: console
+        queueSize: 2048

@@ -22,59 +22,54 @@ example response:
 
 ```json
 {
-    "word": 3,
-    "wat": 1
+    "counts": {
+        "word": 3,
+        "wat": 1
+    }
 }
 ```
 
 ## Why would you even do this?
 
-I wrote this service to help people learn about Java performance
+I wrote this thing to help people learn about Java performance
 profiling. There are great tools that are really easy to use, but many
 developers don't know about them. As a consequence, much time is
 wasted quibbling about whether this or that piece of code *might*
-perform well when one could instead *just measure it*. Read on to
-learn about how to measure application performance and never again
-suffer from a "hypothetical performance argument" in code review!
+perform a certain way when one could instead *just measure it*.
 
 ## How to start the wordcount application
 
 1. Run `mvn clean install` to build your application.
-2. Start application with `java -jar
+2. Run `java -jar target/wordcount-service-0.0.1-SNAPSHOT.jar --help`
+   to see what it can do.
+3. Start application with `java -jar
    target/wordcount-service-0.0.1-SNAPSHOT.jar server config.yml`
-3. To check that your application is running visit
+4. To see that your application is running visit
    `http://localhost:8080` in your browser.
-4. Fire off a request:
+5. Fire off a request:
 ```
-curl -XPOST -d '{"words": ["word", "word", "word", "wat"]}' http://localhost:8080/words
+curl -XPOST -H "Content-Type: application/json" -d '{"words": ["word", "word", "word", "wat"]}' http://localhost:8080/words
 ```
-5. Bask in the light of technology.
-
-## Health Check
-
-To see your application's health visit
-`http://localhost:8081/healthcheck` in your browser.
+6. Bask in the light of technology.
 
 ## Performance profiling
 
-This section describes how to
-use
-[Java Flight Recorder](https://docs.oracle.com/javacomponents/jmc-5-5/jfr-runtime-guide/toc.htm) to
-profile the performance of a running web application, and Java Mission
-Control to analyze the performance metrics. We will also see how to
-invoke Java Flight Recorder from the command line for use with
-shorter-running Java processes.
+This section describes how to use Java Flight Recorder profile the
+performance of a running web application, and Java Mission Control to
+analyze the performance metrics. We will also see how to invoke Java
+Flight Recorder from the command line for use with shorter-running
+Java processes.
 
 ### Prerequisites
 
 1. Install the [Oracle JDK](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html).
-2. Install [wrk](https://github.com/wg/wrk).
-3. Install [maven](https://maven.apache.org/).
+2. Install [maven](https://maven.apache.org/).
+3. Install [wrk](https://github.com/wg/wrk).
 
 ### Profiling the web application
 
 We'll use Java Flight Recorder and Java Mission Control to collect and
-analyze runtime performance metrics while the application is being
+analyze runtime performance data while the application is being
 subjected to a load test using wrk.
 
 1. Run `mvn clean install` to make sure you have the latest build
@@ -103,7 +98,7 @@ like GC pauses, thread contention, and hot methods.
 Sometimes you don't have the luxury of an application which just idles
 in the background, waiting for you to connect the profiler to it. Some
 applications fire up a JVM, do their business, then terminate the
-JVM. Profiling applications like this would seem difficult following
+JVM. Profiling applications like these would seem difficult following
 the process above, especially step 7. Fortunately, there's a better
 way.
 
@@ -112,24 +107,34 @@ wordcount service! To run this application, invoke the following
 command:
 
 ```
-time java -jar target/wordcount-service-0.0.1-SNAPSHOT.jar count --iterations 10000 darwin.json
+time java -jar target/wordcount-service-0.0.1-SNAPSHOT.jar count -i 100 -k 1000 -c hashmap darwin.json
 ```
 
-This counts up all the words in `darwin.json` 10000 times in a row,
-prints a JSON histogram to the console, and exits. Note the `time`
+This counts up all the words in `darwin.json` 100 times in a row,
+printing a JSON histogram to the console each time. Note the `time`
 command. This will tell you how long the program took to execute. On
-my machine, it runs in about 3 minutes.
+my machine, it runs in about 6 seconds.
 
-To profile this application, we'll need to add some JVM flags to
+To profile this application, we'll need to add some JVM flags to dump
+a Java Flight Recorder run:
+
+```
+java -XX:+UnlockCommercialFeatures -XX:+FlightRecorder -XX:FlightRecorderOptions=defaultrecording=true,dumponexit=true,dumponexitpath=/tmp/recording.jfr -jar target/wordcount-service-0.0.1-SNAPSHOT.jar count -i 100 -k 1000 -c hashmap darwin.json
+```
+
+Now you can open `/tmp/recording.jfr` in Java Mission Control and
+inspect the results. For more information about Java Flight Recorder,
+see
+[the docs.](https://docs.oracle.com/javacomponents/jmc-5-5/jfr-runtime-guide/toc.htm) to
 
 ### License issues
 
-Don't run any JVM in production with the
+Don't run any JVMs in production with the
 `-XX:+UnlockCommercialFeatures` flag. It's fine to run in QA or dev,
 but not in prod. Oracle has a hilariously evil license for JavaSE
 where most of it is free, but some parts (like Java Mission Control)
 are subject to commercial license if you use them in certain ways
 (like on a production system). In production, or if you are running
-OpenJDK, you can use another profiling tool
+OpenJDK, you can try using another profiling tool
 like [VisualVM](https://visualvm.github.io/)
 or [YourKit](https://www.yourkit.com/).
