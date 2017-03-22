@@ -125,7 +125,7 @@ java -XX:+UnlockCommercialFeatures -XX:+FlightRecorder -XX:FlightRecorderOptions
 Now you can open `/tmp/recording.jfr` in Java Mission Control and
 inspect the results. For more information about Java Flight Recorder,
 see
-[the docs.](https://docs.oracle.com/javacomponents/jmc-5-5/jfr-runtime-guide/toc.htm) to
+[the docs.](https://docs.oracle.com/javacomponents/jmc-5-5/jfr-runtime-guide/toc.htm)
 
 ### License issues
 
