@@ -1,28 +1,26 @@
 package com.jgrillo.wordcount.core;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Stream;
 
-public class HashMapCounter implements Counter {
-    private final Map<String, Long> counts;
+public final class HashMapCounter implements Counter {
+    private final Integer initialCapacity;
 
     public HashMapCounter(Integer initialCapacity) {
-        this.counts = new HashMap<>(initialCapacity);
+        this.initialCapacity = initialCapacity;
     }
 
     @Override
-    public synchronized void put(String word) {
-        counts.compute(word, (key, value) -> value == null ? 1L : value + 1);
-    }
+    public Map<String, Long> getCounts(Stream<String> words) {
+        final Map<String, Long> counts = new HashMap<>(initialCapacity);
 
-    @Override
-    public synchronized void putAll(Collection<String> words) {
-        words.forEach(this::put);
-    }
+        words.forEach(word -> {
+            synchronized (counts) {
+                counts.compute(word, (key, value) -> value == null ? 1L : value + 1);
+            }
+        });
 
-    @Override
-    public synchronized Map<String, Long> getCounts() {
         return counts;
     }
 }

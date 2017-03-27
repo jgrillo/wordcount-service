@@ -1,7 +1,11 @@
 package com.jgrillo.wordcount.cli;
 
-import com.fasterxml.jackson.core.PrettyPrinter;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.jgrillo.wordcount.api.Counts;
 import com.jgrillo.wordcount.api.Words;
@@ -12,21 +16,20 @@ import io.dropwizard.cli.Command;
 import io.dropwizard.setup.Bootstrap;
 import net.sourceforge.argparse4j.inf.*;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.file.Files;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Spliterator;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-public class CountCommand extends Command {
+public final class CountCommand extends Command {
     private static final String ITERATIONS = "iterations";
     private static final String CAPACITY = "capacity";
     private static final String FILE = "file";
     private static final String COUNTER = "counter";
+    private static final String PARALLEL = "parallel";
 
     public CountCommand() {
         super("count", "Count up all the words in the JSON input file.");
@@ -53,6 +56,12 @@ public class CountCommand extends Command {
                 .required(true)
                 .help("The counter type to use.");
 
+        subparser.addArgument("-p")
+                .dest(PARALLEL)
+                .type(boolean.class)
+                .required(true)
+                .help("Whether to use parallel streams.");
+
         subparser.addArgument(FILE)
                 .dest(FILE)
                 .type((parser, arg, value) -> {
@@ -73,17 +82,34 @@ public class CountCommand extends Command {
         final Integer iterations = namespace.getInt(ITERATIONS);
         final CounterType counterType = (CounterType) namespace.getAttrs().get(COUNTER);
         final Integer capacity = namespace.getInt(CAPACITY);
-        final String inputFilePath = ((File) namespace.getAttrs().get(FILE)).getAbsolutePath();
-        final ObjectMapper mapper = bootstrap.getObjectMapper();
-        mapper.enable(SerializationFeature.INDENT_OUTPUT);
+        final String inputPath = ((File) namespace.getAttrs().get(FILE)).getAbsolutePath();
+        final Boolean parallel = namespace.getBoolean(PARALLEL);
+
+        final ObjectMapper mapper = bootstrap.getObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+        final ObjectReader reader = mapper.reader().forType(Words.class);
+        final ObjectWriter writer = mapper.writer().forType(Counts.class);
+
+        final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
         for (int i = 0; i < iterations; i++) {
             final Counter counter = CounterFactory.newCounter(counterType, capacity);
-            try (final InputStream inputStream = new FileInputStream(inputFilePath)) {
-                final Words words = mapper.readValue(inputStream, Words.class);
-                counter.putAll(words.getWords());
-                System.out.println(mapper.writeValueAsString(new Counts(counter.getCounts())));
-            }
+
+            final InputStream inputStream = new FileInputStream(new File(inputPath));
+
+            final JsonParser jsonParser = reader.getFactory().createParser(inputStream);
+            final Words words = reader.readValue(jsonParser);
+            final Stream<String> wordsStream = StreamSupport.stream(words.getWords().spliterator(), parallel);
+
+            executorService.submit(() -> {
+                try {
+                    System.out.println(writer.writeValueAsString(new Counts(counter.getCounts(wordsStream))));
+                } catch (JsonProcessingException e) {
+                    e.printStackTrace();
+                }
+            });
         }
+
+        executorService.awaitTermination(1, TimeUnit.SECONDS);
+        executorService.shutdown();
     }
 }

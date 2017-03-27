@@ -7,7 +7,7 @@ import io.dropwizard.Configuration;
 
 import javax.validation.constraints.NotNull;
 
-public class WordcountConfiguration extends Configuration {
+public final class WordcountConfiguration extends Configuration {
 
     @NotNull
     private final CounterType counterType;
@@ -17,22 +17,33 @@ public class WordcountConfiguration extends Configuration {
     private final Integer initialCapacity;
     private static final String INITIAL_CAPACITY_PROP = "initial_capacity";
 
+    @NotNull
+    private final Boolean parallel;
+    private static final String PARALLEL_PROP = "parallel";
+
     @JsonCreator
     public WordcountConfiguration(
             @JsonProperty(COUNTER_TYPE_PROP) String counterType,
-            @JsonProperty(INITIAL_CAPACITY_PROP) Integer initialCapacity
+            @JsonProperty(INITIAL_CAPACITY_PROP) Integer initialCapacity,
+            @JsonProperty(PARALLEL_PROP) Boolean parallel
     ) {
         this.counterType = CounterType.valueOf(counterType.toUpperCase());
         this.initialCapacity = initialCapacity;
+        this.parallel = parallel;
     }
 
-    @JsonProperty
+    @JsonProperty(COUNTER_TYPE_PROP)
     public CounterType getCounterType() {
         return counterType;
     }
 
-    @JsonProperty
+    @JsonProperty(INITIAL_CAPACITY_PROP)
     public Integer getInitialCapacity() {
         return initialCapacity;
+    }
+
+    @JsonProperty(PARALLEL_PROP)
+    public Boolean getParallel() {
+        return parallel;
     }
 }

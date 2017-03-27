@@ -1,5 +1,6 @@
-counter_type: stream
-initial_capacity: 1000
+counter_type: fast
+initial_capacity: 1024
+parallel: true
 logging:
   level: INFO
   loggers:
