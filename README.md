@@ -108,7 +108,7 @@ wordcount service! To run this application, invoke the following
 command:
 
 ```
-time java -jar target/wordcount-service-0.0.1-SNAPSHOT.jar count -i 100 -k 1000 -c hashmap -p false src/test/resources/fixtures/darwin.json
+time java -jar target/wordcount-service-0.0.1-SNAPSHOT.jar count -i 100 -k 1000 -c hashmap -p false src/test/resources/fixtures/darwin_words.json
 ```
 
 This counts up all the words in `darwin.json` 100 times in a row,
@@ -120,7 +120,7 @@ To profile this application, we'll need to add some JVM flags to dump
 a Java Flight Recorder run:
 
 ```
-java -XX:+UnlockCommercialFeatures -XX:+FlightRecorder -XX:FlightRecorderOptions=defaultrecording=true,dumponexit=true,dumponexitpath=/tmp/recording.jfr -jar target/wordcount-service-0.0.1-SNAPSHOT.jar count -i 100 -k 1000 -c hashmap -p true darwin.json
+java -XX:+UnlockCommercialFeatures -XX:+FlightRecorder -XX:FlightRecorderOptions=defaultrecording=true,dumponexit=true,dumponexitpath=/tmp/recording.jfr -jar target/wordcount-service-0.0.1-SNAPSHOT.jar count -i 100 -k 1000 -c hashmap -p true src/test/resources/fixtures/darwin_words.json
 ```
 
 Now you can open `/tmp/recording.jfr` in Java Mission Control and

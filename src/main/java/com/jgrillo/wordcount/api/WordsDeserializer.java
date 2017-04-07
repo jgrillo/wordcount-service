@@ -3,13 +3,16 @@ package com.jgrillo.wordcount.api;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Iterator;
+import java.util.Objects;
+import java.util.Spliterator;
+import java.util.Spliterators;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 public final class WordsDeserializer extends StdDeserializer<Words> {
-    private static final Logger logger = LoggerFactory.getLogger(WordsDeserializer.class);
 
     public WordsDeserializer() {
         this(Words.class);
@@ -24,7 +27,12 @@ public final class WordsDeserializer extends StdDeserializer<Words> {
             JsonParser jsonParser, DeserializationContext deserializationContext
     ) throws IOException {
         try {
-            return new Words(() -> new WordsIterator(jsonParser));
+            final Iterator<String> wordsIterator = new WordsIterator(jsonParser);
+            final Spliterator<String> wordsSpliterator = Spliterators.spliteratorUnknownSize(wordsIterator, 0);
+            final Stream<String> wordsStream = StreamSupport.stream(wordsSpliterator, true)
+                    .filter(Objects::nonNull);
+
+            return new Words(wordsStream);
         } catch (WordsIOEWrapper e) {
             throw e.getCause();
         }

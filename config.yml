@@ -10,6 +10,8 @@ metrics:
   reporters:
     - type: console
 server:
+  maxThreads: 1024
+  maxQueuedRequests: 2048
   requestLog:
     appenders:
       - type: console

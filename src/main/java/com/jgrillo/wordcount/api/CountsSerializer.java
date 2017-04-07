@@ -30,8 +30,5 @@ public final class CountsSerializer extends StdSerializer<Counts> {
 
         jsonGenerator.writeEndObject();
         jsonGenerator.writeEndObject();
-
-        jsonGenerator.flush();
-        jsonGenerator.close();
     }
 }

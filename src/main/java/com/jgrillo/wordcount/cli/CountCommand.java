@@ -1,6 +1,5 @@
 package com.jgrillo.wordcount.cli;
 
-import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -98,7 +97,9 @@ public final class CountCommand extends Command {
 
             final JsonParser jsonParser = reader.getFactory().createParser(inputStream);
             final Words words = reader.readValue(jsonParser);
-            final Stream<String> wordsStream = StreamSupport.stream(words.getWords().spliterator(), parallel);
+            final Stream<String> wordsStream = StreamSupport.stream(
+                    () -> words.getWords().spliterator(), 0, parallel
+            );
 
             executorService.submit(() -> {
                 try {
