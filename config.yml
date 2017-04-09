@@ -1,6 +1,6 @@
 counter_type: fast
-initial_capacity: 1024
-parallel: true
+initial_capacity: 19456
+parallel: false
 logging:
   level: INFO
   loggers:

@@ -15,6 +15,7 @@ import com.jgrillo.wordcount.core.CounterFactory;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 import java.io.IOException;
 import java.io.InputStream;
@@ -39,7 +40,7 @@ public final class WordsResource {
     @Timed(name = "words-timed")
     @Metered(name = "words-metered")
     @ExceptionMetered(name = "words-exception-metered")
-    public StreamingOutput countWords(InputStream inputStream) throws IOException {
+    public Response countWords(InputStream inputStream) throws IOException {
         final Counter counter = CounterFactory.newCounter(config.getCounterType(), config.getInitialCapacity());
 
         try (final JsonParser jsonParser = wordsReader.getFactory().createParser(inputStream)) {
@@ -49,11 +50,10 @@ public final class WordsResource {
             );
             final Counts counts = new Counts(counter.getCounts(wordsStream));
 
-            return outputStream -> {
+            return  Response.ok((StreamingOutput) outputStream -> {
                 final JsonGenerator jsonGenerator = countsWriter.getFactory().createGenerator(outputStream);
-
                 countsWriter.writeValue(jsonGenerator, counts);
-            };
+            }).build();
         }
     }
 }
