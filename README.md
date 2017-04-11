@@ -132,10 +132,24 @@ see
 
 Don't run any JVMs in production with the
 `-XX:+UnlockCommercialFeatures` flag. It's fine to run in QA or dev,
-but not in prod. Oracle has a hilariously evil license for JavaSE
-where most of it is free, but some parts (like Java Mission Control)
-are subject to commercial license if you use them in certain ways
-(like on a production system). In production, or if you are running
-OpenJDK, you can try using another profiling tool
-like [VisualVM](https://visualvm.github.io/)
-or [YourKit](https://www.yourkit.com/).
+but not in prod. Oracle has a 
+[hilariously evil license](http://www.oracle.com/technetwork/java/javase/terms/license/index.html) 
+for JavaSE where most of it is free, but some parts (like Java Mission 
+Control) are subject to commercial license if you use them in certain 
+ways (like on a production system). In production, or if you are 
+running OpenJDK, you can try using another profiling tool like 
+[VisualVM](https://visualvm.github.io/) or 
+[YourKit](https://www.yourkit.com/).
+
+### Caveat
+
+The technique described here uses a sampling profiler, so results may 
+vary between runs, and may not accurately reflect results you would
+see using a tracing profiler. Also, beware the JIT. In Java Mission 
+Control you can see what the JIT was up to during your profiling run
+by looking in the "Code" section. If you see lots of compilations, it's
+possible your sampling run was contaminated with un-optimized code. If
+you think that might be the case, try profiling for a longer run and/or
+pre-warming the JIT for a period of time (i.e. running your load test) 
+before starting the sampling run. In any case, these measurements are 
+approximate, not absolute.
