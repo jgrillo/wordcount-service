@@ -19,8 +19,6 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 @Path("/words")
 @Produces(MediaType.APPLICATION_JSON)
@@ -45,10 +43,7 @@ public final class WordsResource {
 
         try (final JsonParser jsonParser = wordsReader.getFactory().createParser(inputStream)) {
             final Words words = wordsReader.readValue(jsonParser);
-            final Stream<String> wordsStream = StreamSupport.stream(
-                    () -> words.getWords().spliterator(), 0, config.getParallel()
-            );
-            final Counts counts = new Counts(counter.getCounts(wordsStream));
+            final Counts counts = new Counts(counter.getCounts(words.getWords()));
 
             return  Response.ok((StreamingOutput) outputStream -> {
                 final JsonGenerator jsonGenerator = countsWriter.getFactory().createGenerator(outputStream);

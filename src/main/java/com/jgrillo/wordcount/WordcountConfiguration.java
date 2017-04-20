@@ -17,19 +17,13 @@ public final class WordcountConfiguration extends Configuration implements Confi
     private final int initialCapacity;
     private static final String INITIAL_CAPACITY_PROP = "initial_capacity";
 
-    @NotNull
-    private final boolean parallel;
-    private static final String PARALLEL_PROP = "parallel";
-
     @JsonCreator
     public WordcountConfiguration(
             @JsonProperty(COUNTER_TYPE_PROP) String counterType,
-            @JsonProperty(INITIAL_CAPACITY_PROP) int initialCapacity,
-            @JsonProperty(PARALLEL_PROP) boolean parallel
+            @JsonProperty(INITIAL_CAPACITY_PROP) int initialCapacity
     ) {
         this.counterType = CounterType.valueOf(counterType.toUpperCase());
         this.initialCapacity = initialCapacity;
-        this.parallel = parallel;
     }
 
     @Override
@@ -42,11 +36,5 @@ public final class WordcountConfiguration extends Configuration implements Confi
     @JsonProperty(INITIAL_CAPACITY_PROP)
     public int getInitialCapacity() {
         return initialCapacity;
-    }
-
-    @Override
-    @JsonProperty(PARALLEL_PROP)
-    public boolean getParallel() {
-        return parallel;
     }
 }

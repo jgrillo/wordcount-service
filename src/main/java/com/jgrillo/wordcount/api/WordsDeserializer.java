@@ -29,7 +29,7 @@ public final class WordsDeserializer extends StdDeserializer<Words> {
         try {
             final Iterator<String> wordsIterator = new WordsIterator(jsonParser);
             final Spliterator<String> wordsSpliterator = Spliterators.spliteratorUnknownSize(wordsIterator, 0);
-            final Stream<String> wordsStream = StreamSupport.stream(wordsSpliterator, true)
+            final Stream<String> wordsStream = StreamSupport.stream(wordsSpliterator, false)
                     .filter(Objects::nonNull);
 
             return new Words(wordsStream);

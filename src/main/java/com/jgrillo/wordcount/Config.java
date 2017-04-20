@@ -7,6 +7,4 @@ public interface Config {
     CounterType getCounterType();
 
     int getInitialCapacity();
-
-    boolean getParallel();
 }

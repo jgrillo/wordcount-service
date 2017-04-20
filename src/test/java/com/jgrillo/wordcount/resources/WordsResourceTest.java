@@ -58,7 +58,6 @@ public final class WordsResourceTest {
             ).checkAssert((counterType, initialCapacity, parallel) -> {
                 when(config.getCounterType()).thenReturn(counterType);
                 when(config.getInitialCapacity()).thenReturn(initialCapacity);
-                when(config.getParallel()).thenReturn(parallel);
 
                 final byte[] wordsBytes = fixture("fixtures/darwin_words.json").getBytes(Charsets.UTF_8);
 
@@ -85,7 +84,6 @@ public final class WordsResourceTest {
 
                 verify(config, atLeastOnce()).getCounterType();
                 verify(config, atLeastOnce()).getInitialCapacity();
-                verify(config, atLeastOnce()).getParallel();
             });
         } finally {
             reset(config);

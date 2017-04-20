@@ -20,15 +20,12 @@ import java.nio.file.Files;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 public final class CountCommand extends Command {
     private static final String ITERATIONS = "iterations";
     private static final String CAPACITY = "capacity";
     private static final String FILE = "file";
     private static final String COUNTER = "counter";
-    private static final String PARALLEL = "parallel";
 
     public CountCommand() {
         super("count", "Count up all the words in the JSON input file.");
@@ -55,12 +52,6 @@ public final class CountCommand extends Command {
                 .required(true)
                 .help("The counter type to use.");
 
-        subparser.addArgument("-p")
-                .dest(PARALLEL)
-                .type(boolean.class)
-                .required(true)
-                .help("Whether to use parallel streams.");
-
         subparser.addArgument(FILE)
                 .dest(FILE)
                 .type((parser, arg, value) -> {
@@ -82,7 +73,6 @@ public final class CountCommand extends Command {
         final CounterType counterType = (CounterType) namespace.getAttrs().get(COUNTER);
         final Integer capacity = namespace.getInt(CAPACITY);
         final String inputPath = ((File) namespace.getAttrs().get(FILE)).getAbsolutePath();
-        final Boolean parallel = namespace.getBoolean(PARALLEL);
 
         final ObjectMapper mapper = bootstrap.getObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
         final ObjectReader reader = mapper.reader().forType(Words.class);
@@ -97,13 +87,10 @@ public final class CountCommand extends Command {
 
             final JsonParser jsonParser = reader.getFactory().createParser(inputStream);
             final Words words = reader.readValue(jsonParser);
-            final Stream<String> wordsStream = StreamSupport.stream(
-                    () -> words.getWords().spliterator(), 0, parallel
-            );
 
             executorService.submit(() -> {
                 try {
-                    System.out.println(writer.writeValueAsString(new Counts(counter.getCounts(wordsStream))));
+                    System.out.println(writer.writeValueAsString(new Counts(counter.getCounts(words.getWords()))));
                 } catch (JsonProcessingException e) {
                     e.printStackTrace();
                 }
