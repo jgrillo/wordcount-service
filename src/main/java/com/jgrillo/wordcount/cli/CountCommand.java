@@ -9,8 +9,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.jgrillo.wordcount.api.Counts;
 import com.jgrillo.wordcount.api.Words;
 import com.jgrillo.wordcount.core.Counter;
-import com.jgrillo.wordcount.core.CounterFactory;
-import com.jgrillo.wordcount.core.CounterType;
+import com.jgrillo.wordcount.core.HashMapCounter;
 import io.dropwizard.cli.Command;
 import io.dropwizard.setup.Bootstrap;
 import net.sourceforge.argparse4j.inf.*;
@@ -45,13 +44,6 @@ public final class CountCommand extends Command {
                 .required(true)
                 .help("The initial capacity of the counter.");
 
-        subparser.addArgument("-c")
-                .dest(COUNTER)
-                .choices(CounterType.values())
-                .type((argumentParser, argument, value) -> CounterType.valueOf(value.toUpperCase()))
-                .required(true)
-                .help("The counter type to use.");
-
         subparser.addArgument(FILE)
                 .dest(FILE)
                 .type((parser, arg, value) -> {
@@ -70,7 +62,6 @@ public final class CountCommand extends Command {
     @Override
     public void run(Bootstrap<?> bootstrap, Namespace namespace) throws Exception {
         final Integer iterations = namespace.getInt(ITERATIONS);
-        final CounterType counterType = (CounterType) namespace.getAttrs().get(COUNTER);
         final Integer capacity = namespace.getInt(CAPACITY);
         final String inputPath = ((File) namespace.getAttrs().get(FILE)).getAbsolutePath();
 
@@ -81,7 +72,7 @@ public final class CountCommand extends Command {
         final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
         for (int i = 0; i < iterations; i++) {
-            final Counter counter = CounterFactory.newCounter(counterType, capacity);
+            final Counter counter = new HashMapCounter(capacity);
 
             final InputStream inputStream = new FileInputStream(new File(inputPath));
 
@@ -90,8 +81,8 @@ public final class CountCommand extends Command {
 
             executorService.submit(() -> {
                 try {
-                    System.out.println(writer.writeValueAsString(new Counts(counter.getCounts(words.getWords()))));
-                } catch (JsonProcessingException e) {
+                    System.out.println(writer.writeValueAsString(new Counts(counter.countWords(words.getWords()))));
+                } catch (IOException e) {
                     e.printStackTrace();
                 }
             });

@@ -2,11 +2,13 @@ package com.jgrillo.wordcount.api;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
+import com.jgrillo.wordcount.core.Result;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 
-public final class WordsIterator implements Iterator<String> {
+public final class WordsIterator implements Iterator<Result<String, IOException>> {
     private final JsonParser jsonParser;
 
     private JsonToken token;
@@ -22,89 +24,81 @@ public final class WordsIterator implements Iterator<String> {
 
     @Override
     public boolean hasNext() {
-        return !stopped && !jsonParser.isClosed();
+        //return !stopped && !jsonParser.isClosed();
+        return !stopped;
     }
 
     @Override
-    public String next() {
+    public Result<String, IOException> next() {
         // advance to the start of the words array -- this loop runs during the first next() call
-        while (!started) {
-            if (token == null) {
-                try {
+        try {
+            while (!started) {
+                if (token == null) {
                     token = jsonParser.nextToken();
                     continue;
-                } catch (IOException e) {
-                    throw new WordsIOEWrapper("Caught IOE while fetching next token", e);
                 }
-            }
 
-            switch (token) {
-                case START_OBJECT:
-                    try {
+                switch (token) {
+                    case START_OBJECT:
                         token = jsonParser.nextToken();
                         break;
-                    } catch (IOException e) {
-                        throw new WordsIOEWrapper("Caught IOE while fetching next token", e);
-                    }
-                case FIELD_NAME:
-                    try {
+                    case FIELD_NAME:
                         final String name = jsonParser.getCurrentName();
 
                         if (name.equals(Words.WORDS_PROP)) {
                             token = jsonParser.nextToken();
                             break;
                         } else {
-                            throw new WordsIOEWrapper("Unknown field", new WordsProcessingException(
-                                    String.format("Encountered unknown field: \"%s\"", name),
-                                    jsonParser.getCurrentLocation()
-                            ));
+                            return () -> {
+                                throw new WordsProcessingException(
+                                        String.format("Encountered unknown field: \"%s\"", name),
+                                        jsonParser.getCurrentLocation()
+                                );
+                            };
                         }
-                    } catch (IOException e) {
-                        throw new WordsIOEWrapper("Caught IOE while fetching next token", e);
-                    }
-                case START_ARRAY:
-                    try {
+                    case START_ARRAY:
                         token = jsonParser.nextToken();
                         started = true;
-                        break;
-                    } catch (IOException e) {
-                        throw new WordsIOEWrapper("Caught IOE while fetching next token", e);
-                    }
-                default:
-                    throw new WordsIOEWrapper("Unknown state", new WordsProcessingException(
-                            "Malformed JSON", jsonParser.getCurrentLocation()
-                    ));
-            }
-        }
 
-        // We are in the array, so return the current value
-        switch (token) {
-            case VALUE_STRING:
-                final String word;
-                try {
+                        break;
+                    default:
+                        return () -> {
+                            throw new WordsProcessingException("Malformed JSON", jsonParser.getCurrentLocation());
+                        };
+                }
+            }
+
+            // We are in the array, so return the current value
+            switch (token) {
+                case VALUE_STRING:
+                    final String word;
                     word = jsonParser.getValueAsString();
 
-                    try {
-                        token = jsonParser.nextToken(); // peek ahead
-                    } catch (IOException e) {
-                        throw new WordsIOEWrapper("Caught IOE while fetching next token", e);
-                    }
+                    token = jsonParser.nextToken(); // peek ahead
 
                     if (token == null || token.equals(JsonToken.END_ARRAY)) {
                         stopped = true;
                     }
 
-                    return word;
-                } catch (IOException e) {
-                    throw new WordsIOEWrapper("Caught IOE while fetching string value", e);
-                }
-            case END_ARRAY:
-                stopped = true;
-                return null;
-            default:
-                throw new WordsIOEWrapper("Unknown state", new WordsProcessingException(
-                        "Malformed JSON", jsonParser.getCurrentLocation()
-                ));
+                    return () -> word;
+                case END_ARRAY:
+                    if (stopped) {
+                        return () -> {
+                            throw new NoSuchElementException("Words array has been exhausted");
+                        };
+                    } else { // we'll encounter this branch parsing the empty payload: {"words": []}
+                        stopped = true;
+                        return () -> null;
+                    }
+                default:
+                    return () -> {
+                        throw new WordsProcessingException("Malformed JSON", jsonParser.getCurrentLocation());
+                    };
+            }
+        } catch (IOException e) {
+            return () -> {
+                throw e;
+            };
         }
     }
 }

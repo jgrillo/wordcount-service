@@ -9,16 +9,16 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
+import com.jgrillo.wordcount.core.Result;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import static org.quicktheories.quicktheories.QuickTheory.qt;
-import static org.quicktheories.quicktheories.generators.SourceDSL.*;
+import static com.jgrillo.wordcount.WordcountTestUtil.wordsIterator;
+import static org.junit.Assert.*;
+import static org.quicktheories.QuickTheory.qt;
+import static org.quicktheories.generators.SourceDSL.*;
 import static io.dropwizard.testing.FixtureHelpers.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -36,12 +36,12 @@ public final class WordsTest {
     @Test
     public void testWordsEncodeDecode() throws Exception {
         qt().forAll(
-                lists().allListsOf(strings().allPossible().ofLengthBetween(0, 100)).ofSizeBetween(0, 1000).describedAs(
+                lists().of(strings().allPossible().ofLengthBetween(0, 100)).ofSizeBetween(0, 1000).describedAs(
                         Object::toString
                 )
         ).asWithPrecursor(words -> {
             try {
-                final byte[] bytes = writer.writeValueAsBytes(new Words(words.stream()));
+                final byte[] bytes = writer.writeValueAsBytes(new Words(wordsIterator(words)));
                 return factory.createParser(bytes);
             } catch (IOException e) {
                 throw new RuntimeException("Caught IOE while serializing", e);
@@ -50,9 +50,23 @@ public final class WordsTest {
             try {
                 final Words wordsModel = reader.readValue(parser);
 
-                final List<String> deserializedWords = wordsModel.getWords().collect(Collectors.toList());
+                final ImmutableList.Builder<String> deserializedWordsBuilder = ImmutableList.builder();
+                try {
+                    final Iterator<Result<String, IOException>> results = wordsModel.getWords();
 
-                assertThat(words).isEqualTo(deserializedWords);
+                    while (results.hasNext()) {
+                        final Result<String, IOException> result = results.next();
+                        final String word = result.get();
+
+                        if (word != null) {
+                            deserializedWordsBuilder.add(word);
+                        }
+                    }
+                } catch (IOException e) {
+                    fail(e.getMessage());
+                }
+
+                assertThat(words).isEqualTo(deserializedWordsBuilder.build());
             } catch (IOException e) {
                 throw new RuntimeException("Caught IOE while deserializing", e);
             }
@@ -62,12 +76,13 @@ public final class WordsTest {
     @Test
     public void testWordsSerializesToJSON() throws Exception {
         final Words words = new Words(
-                Stream.<String>builder()
-                        .add("word")
-                        .add("word")
-                        .add("word")
-                        .add("wat")
+                ImmutableList.<Result<String, IOException>>builder()
+                        .add(() -> "word")
+                        .add(() -> "word")
+                        .add(() -> "word")
+                        .add(() -> "wat")
                         .build()
+                        .iterator()
         );
 
         final byte[] bytes = fixture("fixtures/words.json").getBytes(Charsets.UTF_8);
@@ -81,29 +96,52 @@ public final class WordsTest {
 
     @Test
     public void testWordsDeserializesFromJSON() throws Exception {
-        final Words words = new Words(
-                Stream.<String>builder()
-                        .add("word")
-                        .add("word")
-                        .add("word")
-                        .add("wat")
-                        .build()
-        );
-
         final byte[] bytes = fixture("fixtures/words.json").getBytes(Charsets.UTF_8);
+        final ImmutableList.Builder<String> deserializedWordsBuilder = ImmutableList.builder();
+
+        final Words wordsModel;
         try (final JsonParser parser = factory.createParser(bytes)) {
-            final Words deserializedWordsModel = reader.readValue(parser);
-            final Iterator<String> deserializedWordsIterator = deserializedWordsModel.getWords().sorted().iterator();
+            wordsModel = reader.readValue(parser);
 
-            final ImmutableList.Builder<String> deserializedWordsListBuilder = ImmutableList.builder();
-            while (deserializedWordsIterator.hasNext()) {
-                final String word = deserializedWordsIterator.next();
-                deserializedWordsListBuilder.add(word);
+            final Iterator<Result<String, IOException>> results = wordsModel.getWords();
+            try {
+                while (results.hasNext()) {
+                    final Result<String, IOException> result = results.next();
+                    final String word = result.get();
+
+                    if (word != null) {
+                        deserializedWordsBuilder.add(word);
+                    }
+                }
+            } catch (IOException e) {
+                fail(e.getMessage());
             }
-
-            final List<String> deserializedWords = deserializedWordsListBuilder.build();
-
-            assertThat(deserializedWords).isEqualTo(words.getWords().sorted().collect(Collectors.toList()));
         }
+
+        final Words expectedWords = new Words(
+                ImmutableList.<Result<String, IOException>>builder()
+                        .add(() -> "word")
+                        .add(() -> "word")
+                        .add(() -> "word")
+                        .add(() -> "wat")
+                        .build()
+                        .iterator()
+        );
+        final Iterator<Result<String, IOException>> expectedResults = expectedWords.getWords();
+        final ImmutableList.Builder<String> expectedWordsBuilder = ImmutableList.builder();
+        try {
+            while (expectedResults.hasNext()) {
+                final Result<String, IOException> expectedResult = expectedResults.next();
+                final String word = expectedResult.get();
+
+                if (word != null) {
+                    expectedWordsBuilder.add(word);
+                }
+            }
+        } catch (IOException e) {
+            fail(e.getMessage());
+        }
+
+        assertThat(deserializedWordsBuilder.build()).isEqualTo(expectedWordsBuilder.build());
     }
 }

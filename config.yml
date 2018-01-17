@@ -1,4 +1,3 @@
-counter_type: fast
 initial_capacity: 32768
 logging:
   level: INFO

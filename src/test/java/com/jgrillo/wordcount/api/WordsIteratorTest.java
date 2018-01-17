@@ -6,7 +6,11 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.base.Charsets;
+import com.jgrillo.wordcount.core.Result;
 import org.junit.Test;
+
+import java.io.IOException;
+import java.util.NoSuchElementException;
 
 import static org.junit.Assert.*;
 
@@ -19,117 +23,124 @@ public final class WordsIteratorTest {
     @Test
     public void hasNext_returnsTrue_initially() throws Exception {
         final JsonParser jsonParser = factory.createParser("{\"wat\": 666}".getBytes(Charsets.UTF_8));
-
         final WordsIterator wordsIterator = new WordsIterator(jsonParser);
 
         assertTrue(wordsIterator.hasNext());
     }
 
     @Test
-    public void next_throwsWrappedWordsProcessingException_whenFieldNameIncorrect() throws Exception {
+    public void next_returnsWordsProcessingExceptionResult_whenFieldNameIncorrect() throws Exception {
         try (final JsonParser jsonParser = factory.createParser("{\"wat\": 666}".getBytes(Charsets.UTF_8))) {
-
             final WordsIterator wordsIterator = new WordsIterator(jsonParser);
 
             try {
-                wordsIterator.next();
-            } catch (WordsIOEWrapper e) {
-                assertTrue(e.getCause() instanceof WordsProcessingException);
+                final Result<String, IOException> result = wordsIterator.next();
+                result.get();
+            } catch (Exception e) {
+                assertTrue(e instanceof WordsProcessingException);
                 return;
             }
 
-            fail("Should have thrown WordsIOEWrapper containing a WordsProcessingException");
+            fail("Should have thrown a WordsProcessingException");
         }
     }
 
     @Test
-    public void next_throwsWrappedWordsProcessingException_whenWordsFieldIsNotArray() throws Exception {
+    public void next_returnsWordsProcessingExceptionResult_whenWordsFieldIsNotArray() throws Exception {
         try (final JsonParser jsonParser = factory.createParser("{\"words\": 666}".getBytes(Charsets.UTF_8))) {
-
             final WordsIterator wordsIterator = new WordsIterator(jsonParser);
 
             try {
-                wordsIterator.next();
-            } catch (WordsIOEWrapper e) {
-                assertTrue(e.getCause() instanceof WordsProcessingException);
+                final Result<String, IOException> result = wordsIterator.next();
+                result.get();
+            } catch (IOException e) {
+                assertTrue(e instanceof WordsProcessingException);
                 return;
             }
 
-            fail("Should have thrown WordsIOEWrapper containing a WordsProcessingException");
+            fail("Should have thrown a WordsProcessingException");
         }
     }
 
     @Test
-    public void next_throwsWrappedWordsProcessingException_whenWordsArrayContainsNumber() throws Exception {
+    public void next_returnsWordsProcessingExceptionResult_whenWordsArrayContainsNumber() throws Exception {
         try (final JsonParser jsonParser = factory.createParser("{\"words\":[666]}".getBytes(Charsets.UTF_8))) {
-
             final WordsIterator wordsIterator = new WordsIterator(jsonParser);
 
             try {
-                wordsIterator.next();
-            } catch (WordsIOEWrapper e) {
-                assertTrue(e.getCause() instanceof WordsProcessingException);
+                final Result<String, IOException> result = wordsIterator.next();
+                result.get();
+            } catch (IOException e) {
+                assertTrue(e instanceof WordsProcessingException);
                 return;
             }
 
-            fail("Should have thrown WordsIOEWrapper containing a WordsProcessingException");
+            fail("Should have thrown a WordsProcessingException");
         }
     }
 
     @Test
-    public void next_throwsWrappedWordsProcessingException_whenWordsArrayContainsValidWordsObject() throws Exception {
+    public void next_returnsWordsProcessingExceptionResult_whenWordsArrayContainsValidWordsObject() throws Exception {
         try (final JsonParser jsonParser = factory.createParser(
                 "{\"words\":[{\"words\":[\"word\"]}]}".getBytes(Charsets.UTF_8)
         )) {
-
             final WordsIterator wordsIterator = new WordsIterator(jsonParser);
 
             try {
-                wordsIterator.next();
-            } catch (WordsIOEWrapper e) {
-                assertTrue(e.getCause() instanceof WordsProcessingException);
+                final Result<String, IOException> result = wordsIterator.next();
+                result.get();
+            } catch (IOException e) {
+                assertTrue(e instanceof WordsProcessingException);
                 return;
             }
 
-            fail("Should have thrown WordsIOEWrapper containing a WordsProcessingException");
+            fail("Should have thrown a WordsProcessingException");
         }
     }
 
     @Test
-    public void next_throwsWrappedWordsProcessingException_whenWordsArrayContainsArray() throws Exception {
+    public void next_returnsWordsProcessingExceptionResult_whenWordsArrayContainsArray() throws Exception {
         try (final JsonParser jsonParser = factory.createParser("{\"words\":[[\"word\"]]}".getBytes(Charsets.UTF_8))) {
-
             final WordsIterator wordsIterator = new WordsIterator(jsonParser);
 
             try {
-                wordsIterator.next();
-            } catch (WordsIOEWrapper e) {
-                assertTrue(e.getCause() instanceof WordsProcessingException);
+                final Result<String, IOException> result = wordsIterator.next();
+                result.get();
+            } catch (IOException e) {
+                assertTrue(e instanceof WordsProcessingException);
                 return;
             }
 
-            fail("Should have thrown WordsIOEWrapper containing a WordsProcessingException");
+            fail("Should have thrown a WordsProcessingException");
         }
     }
 
     @Test
-    public void next_returnsNull_whenWordsArrayEmpty() throws Exception {
+    public void next_throwsNoSuchElementException_whenWordsArrayExhausted() throws Exception {
         try (final JsonParser jsonParser = factory.createParser("{\"words\":[]}".getBytes(Charsets.UTF_8))) {
-
             final WordsIterator wordsIterator = new WordsIterator(jsonParser);
-            final String word = wordsIterator.next();
 
-            assertNull(word);
-            assertFalse(wordsIterator.hasNext());
+            try {
+                assertTrue(wordsIterator.hasNext());
+                assertNull(wordsIterator.next().get());
+                assertFalse(wordsIterator.hasNext());
+                wordsIterator.next().get();
+            } catch (Exception e) {
+                assertTrue(e instanceof NoSuchElementException);
+                assertFalse(wordsIterator.hasNext());
+                return;
+            }
+
+            fail("Should have thrown NoSuchElementException");
         }
     }
 
     @Test
     public void next_returnsOneWord_whenWordsArrayContainsOneWord() throws Exception {
         try (final JsonParser jsonParser = factory.createParser("{\"words\":[\"word\"]}".getBytes(Charsets.UTF_8))) {
-
             final WordsIterator wordsIterator = new WordsIterator(jsonParser);
-            final String word = wordsIterator.next();
+            final Result<String, IOException> result = wordsIterator.next();
+            final String word = result.get();
 
             if (word == null) {
                 System.out.println("null");
@@ -147,14 +158,15 @@ public final class WordsIteratorTest {
         try (final JsonParser jsonParser = factory.createParser(
                 "{\"words\":[\"word1\",\"word2\"]}".getBytes(Charsets.UTF_8)
         )) {
-
             final WordsIterator wordsIterator = new WordsIterator(jsonParser);
-            final String word1 = wordsIterator.next();
+            final Result<String, IOException> result1 = wordsIterator.next();
+            final String word1 = result1.get();
 
             assertEquals("word1", word1);
             assertTrue(wordsIterator.hasNext());
 
-            final String word2 = wordsIterator.next();
+            final Result<String, IOException> result2 = wordsIterator.next();
+            final String word2 = result2.get();
 
             assertFalse(wordsIterator.hasNext());
             assertEquals("word2", word2);

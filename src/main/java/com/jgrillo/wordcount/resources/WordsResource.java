@@ -11,7 +11,7 @@ import com.jgrillo.wordcount.Config;
 import com.jgrillo.wordcount.api.Counts;
 import com.jgrillo.wordcount.api.Words;
 import com.jgrillo.wordcount.core.Counter;
-import com.jgrillo.wordcount.core.CounterFactory;
+import com.jgrillo.wordcount.core.HashMapCounter;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -39,11 +39,11 @@ public final class WordsResource {
     @Metered(name = "words-metered")
     @ExceptionMetered(name = "words-exception-metered")
     public Response countWords(InputStream inputStream) throws IOException {
-        final Counter counter = CounterFactory.newCounter(config.getCounterType(), config.getInitialCapacity());
+        final Counter counter = new HashMapCounter(config.getInitialCapacity());
 
         try (final JsonParser jsonParser = wordsReader.getFactory().createParser(inputStream)) {
             final Words words = wordsReader.readValue(jsonParser);
-            final Counts counts = new Counts(counter.getCounts(words.getWords()));
+            final Counts counts = new Counts(counter.countWords(words.getWords()));
 
             return  Response.ok((StreamingOutput) outputStream -> {
                 final JsonGenerator jsonGenerator = countsWriter.getFactory().createGenerator(outputStream);

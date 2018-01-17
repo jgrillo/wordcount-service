@@ -14,8 +14,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static org.quicktheories.quicktheories.QuickTheory.qt;
-import static org.quicktheories.quicktheories.generators.SourceDSL.*;
+import static org.quicktheories.QuickTheory.qt;
+import static org.quicktheories.generators.SourceDSL.*;
 import static io.dropwizard.testing.FixtureHelpers.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -33,10 +33,10 @@ public final class CountsTest {
     @Test
     public void testCountsEncodeDecode() throws Exception {
         qt().forAll(
-                lists().allListsOf(strings().allPossible().ofLengthBetween(0, 100)).ofSize(1000).describedAs(
+                lists().of(strings().allPossible().ofLengthBetween(0, 100)).ofSize(1000).describedAs(
                         Object::toString
                 ),
-                lists().allListsOf(longs().all()).ofSize(1000).describedAs(Object::toString)
+                lists().of(longs().all()).ofSize(1000).describedAs(Object::toString)
         ).as((words, counts) -> {
             final ImmutableMap.Builder<String, Long> mapBuilder = ImmutableMap.builder();
             final List<String> distinctWords = words.stream().distinct().collect(Collectors.toList());

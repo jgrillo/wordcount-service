@@ -11,7 +11,6 @@ import com.google.common.base.Charsets;
 import com.jgrillo.wordcount.Config;
 import com.jgrillo.wordcount.api.Counts;
 import com.jgrillo.wordcount.api.Words;
-import com.jgrillo.wordcount.core.CounterType;
 import io.dropwizard.testing.junit.ResourceTestRule;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -23,15 +22,11 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static io.dropwizard.testing.FixtureHelpers.*;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.quicktheories.quicktheories.QuickTheory.qt;
-import static org.quicktheories.quicktheories.generators.SourceDSL.*;
+import static org.quicktheories.QuickTheory.qt;
+import static org.quicktheories.generators.SourceDSL.*;
 
 public final class WordsResourceTest {
     private static final ObjectMapper mapper = new ObjectMapper()
@@ -52,11 +47,9 @@ public final class WordsResourceTest {
     public synchronized void countWords() throws Exception {
         try {
             qt().withExamples(200).withShrinkCycles(20).forAll(
-                    arbitrary().enumValues(CounterType.class),
                     integers().between(0, 100),
                     booleans().all()
-            ).checkAssert((counterType, initialCapacity, parallel) -> {
-                when(config.getCounterType()).thenReturn(counterType);
+            ).checkAssert((initialCapacity, parallel) -> {
                 when(config.getInitialCapacity()).thenReturn(initialCapacity);
 
                 final byte[] wordsBytes = fixture("fixtures/darwin_words.json").getBytes(Charsets.UTF_8);
@@ -82,7 +75,6 @@ public final class WordsResourceTest {
                     fail();
                 }
 
-                verify(config, atLeastOnce()).getCounterType();
                 verify(config, atLeastOnce()).getInitialCapacity();
             });
         } finally {

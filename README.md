@@ -55,7 +55,7 @@ curl -XPOST -H "Content-Type: application/json" -d '{"words": ["word", "word", "
 
 ## Performance profiling
 
-This section describes how to use Java Flight Recorder profile the
+This section describes how to use Java Flight Recorder to profile the
 performance of a running web application, and Java Mission Control to
 analyze the performance metrics. We will also see how to invoke Java
 Flight Recorder from the command line for use with shorter-running
@@ -88,7 +88,7 @@ java -Xmx4096m -Xms4096m -XX:+UseG1GC -XX:+UnlockCommercialFeatures -XX:+FlightR
 terminal to make wrk punish the wordcount service with the complete
 text of Charles Darwin's *On the Origin of Species*:
 ```
-wrk -c 100 -t4 -d 12s --timeout 60s --latency -s perf_test.lua http://localhost:8080/words
+wrk -c 100 -t4 -d 120s --timeout 60s --latency -s perf_test.lua http://localhost:8080/words
 ```
 8. Once your profiling run has finished, you will be able to analyze
 the Flight Recording in Java Mission Control to investigate things
@@ -108,7 +108,7 @@ wordcount service! To run this application, invoke the following
 command:
 
 ```
-time java -jar target/wordcount-service-0.0.1-SNAPSHOT.jar count -i 100 -k 1000 -c hashmap src/test/resources/fixtures/darwin_words.json
+time java -jar target/wordcount-service-0.0.1-SNAPSHOT.jar count -i 100 -k 1000 src/test/resources/fixtures/darwin_words.json
 ```
 
 This counts up all the words in `darwin.json` 100 times in a row,
